@@ -7,7 +7,7 @@ import Stripe from "stripe";
 import { HTTPException } from "hono/http-exception";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-// Start up new Hono backend server
+// Create new Hono backend server
 const app = new Hono();
 
 app.get("/", (c) => {
@@ -60,9 +60,54 @@ app.post("/checkout", async (c) => {
   }
 });
 
+// Webhook endpoint for processing events
+app.post("/webhook", async (c) => {
+  // Retrieve the webhook request body and signature
+  const rawBody = await c.req.text();
+  const signature = c.req.header("stripe-signature");
+
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(
+      rawBody,
+      signature!,
+      process.env.STRIPE_WEBHOOK_SECRET!
+    );
+  } catch (error: any) {
+    console.error(`Webhook signature verification failed: ${error.message}`);
+    throw new HTTPException(400);
+  }
+
+  // Handle the checkout.session.completed event
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object;
+    console.log("The session succeeded!");
+    console.log(session);
+
+    // TODO Fulfill the purchase with your own business logic, for example:
+    // Update Database with order details
+    // Add credits to customer account
+    // Send confirmation email
+    // Print shipping label
+    // Trigger order fulfillment workflow
+    // Update inventory
+    // Etc.
+  } else {
+    const session = event.data.object;
+    console.log("Something else happened!");
+    console.log(session);
+  }
+
+  // Tell Stripe that we successfully handled the webhook
+  return c.text("success");
+});
+
+// Purchase success page
 app.get("/success", (c) => c.text("Success!"));
+// Purchase cancelled page
 app.get("/cancel", (c) => c.text("Cancelled!"));
 
+// Setup up the Hono server
 const port = 3000;
 console.log(`Server is running on port ${port}`);
 
