@@ -1,8 +1,7 @@
-```
-npm install
-npm run dev
-```
+Basic, bare-bones Stripe payments implementation
 
-```
-open http://localhost:3000
-```
+Built with:
+
+- Stripe
+- Hono
+- dotenv
